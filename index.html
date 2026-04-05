@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Backend API Explorer</title>
+    
+    <!-- Chosen Palette: Warm Neutrals with Semantic Accents (Stone, Emerald for GET, Indigo for POST, Amber for PUT, Rose for DELETE) -->
+    <!-- Application Structure Plan: A dashboard-style interactive API documentation viewer. It uses a sidebar for navigation between high-level concepts (Overview, Security, Endpoints, Configuration) to avoid long scrolling. The 'Endpoints' section acts as an interactive explorer where users can filter by category and expand details, replacing static tables with a dynamic, task-oriented layout. This architecture allows developers to quickly find what they need without sifting through unrelated documentation. -->
+    <!-- Visualization & Content Choices: 1. API Architecture overview presented as a grid of interactive cards. 2. Role-Based Access Control (RBAC) visualized using a Chart.js Radar Chart (NO SVG) to instantly compare permissions across VIEWER, ANALYST, and ADMIN roles, making security bounds obvious. 3. Endpoints presented as a dynamic, filterable list using vanilla JS state management to handle expansion and filtering. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        stone: {
+                            50: '#fafaf9',
+                            100: '#f5f5f4',
+                            200: '#e7e5e4',
+                            300: '#d6d3d1',
+                            700: '#44403c',
+                            800: '#292524',
+                            900: '#1c1917',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #fafaf9;
+            color: #292524;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 40vh;
+            max-height: 400px;
+            min-height: 300px;
+        }
+
+        .nav-active {
+            background-color: #e7e5e4;
+            font-weight: 600;
+            border-left: 4px solid #44403c;
+        }
+
+        .nav-item {
+            border-left: 4px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .nav-item:hover:not(.nav-active) {
+            background-color: #f5f5f4;
+            border-left: 4px solid #d6d3d1;
+        }
+
+        .method-GET { background-color: #d1fae5; color: #065f46; }
+        .method-POST { background-color: #e0e7ff; color: #3730a3; }
+        .method-PUT { background-color: #fef3c7; color: #92400e; }
+        .method-DELETE { background-color: #ffe4e6; color: #9f1239; }
+
+        pre {
+            background-color: #1c1917;
+            color: #e7e5e4;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow-x: auto;
+            font-size: 0.875rem;
+        }
+        
+        .content-section {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <aside class="w-64 bg-stone-50 border-r border-stone-200 flex flex-col h-full flex-shrink-0">
+        <div class="p-6 border-b border-stone-200">
+            <h1 class="text-xl font-bold text-stone-800 tracking-tight">Finance API</h1>
+            <p class="text-sm text-stone-500 mt-1">Interactive Reference v3.5</p>
+        </div>
+        <nav class="flex-1 overflow-y-auto py-4" id="sidebar-nav">
+            <button data-target="overview" class="nav-item nav-active w-full text-left px-6 py-3 text-sm text-stone-700">System Overview</button>
+            <button data-target="security" class="nav-item w-full text-left px-6 py-3 text-sm text-stone-700">Security & RBAC</button>
+            <button data-target="endpoints" class="nav-item w-full text-left px-6 py-3 text-sm text-stone-700">API Explorer</button>
+            <button data-target="config" class="nav-item w-full text-left px-6 py-3 text-sm text-stone-700">Configuration & Specs</button>
+        </nav>
+        <div class="p-4 border-t border-stone-200 text-xs text-stone-400 text-center">
+            Spring Boot 3.5 &bull; Java 21
+        </div>
+    </aside>
+
+    <main class="flex-1 h-full overflow-y-auto bg-white p-8 lg:p-12 relative">
+        
+        <section id="overview" class="content-section max-w-5xl mx-auto">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-stone-900 mb-2">System Overview</h2>
+                <p class="text-stone-600 text-lg leading-relaxed">
+                    This section provides a high-level view of the Finance Backend API architecture, technology stack, and standard operational workflow. It sets the context for interacting with the system.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div class="bg-stone-50 border border-stone-200 rounded-xl p-6 shadow-sm">
+                    <div class="text-2xl mb-2">&#x1F310;</div>
+                    <h3 class="font-semibold text-stone-800">Environment</h3>
+                    <ul class="mt-3 space-y-2 text-sm text-stone-600">
+                        <li><span class="font-medium text-stone-800">Base URL:</span> http://localhost:8080</li>
+                        <li><span class="font-medium text-stone-800">Content-Type:</span> application/json</li>
+                        <li><span class="font-medium text-stone-800">Database:</span> PostgreSQL</li>
+                    </ul>
+                </div>
+                <div class="bg-stone-50 border border-stone-200 rounded-xl p-6 shadow-sm">
+                    <div class="text-2xl mb-2">&#x2699;&#xFE0F;</div>
+                    <h3 class="font-semibold text-stone-800">Tech Stack</h3>
+                    <ul class="mt-3 space-y-2 text-sm text-stone-600">
+                        <li>Spring Web & Data JPA</li>
+                        <li>Spring Security</li>
+                        <li>JWT & BCrypt</li>
+                    </ul>
+                </div>
+                <div class="bg-stone-50 border border-stone-200 rounded-xl p-6 shadow-sm">
+                    <div class="text-2xl mb-2">&#x1F512;</div>
+                    <h3 class="font-semibold text-stone-800">Persistence</h3>
+                    <ul class="mt-3 space-y-2 text-sm text-stone-600">
+                        <li>JPA Auto-managed entities</li>
+                        <li>ddl-auto: update</li>
+                        <li>Local key persistence</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="bg-white border border-stone-200 rounded-xl p-8 shadow-sm">
+                <h3 class="text-xl font-bold text-stone-800 mb-6">Integration Workflow</h3>
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between space-y-6 md:space-y-0 relative">
+                    <div class="absolute left-6 md:left-0 md:top-6 bottom-0 md:bottom-auto w-0.5 md:w-full h-full md:h-0.5 bg-stone-200 z-0 hidden md:block"></div>
+                    
+                    <div class="relative z-10 flex flex-col items-center group cursor-pointer">
+                        <div class="w-12 h-12 rounded-full bg-stone-100 border-2 border-stone-300 flex items-center justify-center text-stone-700 font-bold mb-3 group-hover:bg-indigo-50 group-hover:border-indigo-300 group-hover:text-indigo-700 transition-colors">1</div>
+                        <div class="text-center">
+                            <h4 class="font-semibold text-stone-800 text-sm">Setup User</h4>
+                            <p class="text-xs text-stone-500 mt-1 max-w-[120px]">Create via Admin or seed data.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="relative z-10 flex flex-col items-center group cursor-pointer">
+                        <div class="w-12 h-12 rounded-full bg-stone-100 border-2 border-stone-300 flex items-center justify-center text-stone-700 font-bold mb-3 group-hover:bg-indigo-50 group-hover:border-indigo-300 group-hover:text-indigo-700 transition-colors">2</div>
+                        <div class="text-center">
+                            <h4 class="font-semibold text-stone-800 text-sm">Authenticate</h4>
+                            <p class="text-xs text-stone-500 mt-1 max-w-[120px]">POST /auth/login for credentials.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="relative z-10 flex flex-col items-center group cursor-pointer">
+                        <div class="w-12 h-12 rounded-full bg-stone-100 border-2 border-stone-300 flex items-center justify-center text-stone-700 font-bold mb-3 group-hover:bg-indigo-50 group-hover:border-indigo-300 group-hover:text-indigo-700 transition-colors">3</div>
+                        <div class="text-center">
+                            <h4 class="font-semibold text-stone-800 text-sm">Extract Token</h4>
+                            <p class="text-xs text-stone-500 mt-1 max-w-[120px]">Save JWT from response data.</p>
+                        </div>
+                    </div>
+
+                    <div class="relative z-10 flex flex-col items-center group cursor-pointer">
+                        <div class="w-12 h-12 rounded-full bg-stone-100 border-2 border-stone-300 flex items-center justify-center text-stone-700 font-bold mb-3 group-hover:bg-indigo-50 group-hover:border-indigo-300 group-hover:text-indigo-700 transition-colors">4</div>
+                        <div class="text-center">
+                            <h4 class="font-semibold text-stone-800 text-sm">Operate</h4>
+                            <p class="text-xs text-stone-500 mt-1 max-w-[120px]">Send token in Bearer header.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="security" class="content-section max-w-5xl mx-auto hidden">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-stone-900 mb-2">Security & RBAC</h2>
+                <p class="text-stone-600 text-lg leading-relaxed">
+                    This section details the JWT authentication mechanism and visualizes the Role-Based Access Control (RBAC) matrix. Use the radar chart to compare the capabilities of different system roles.
+                </p>
+            </div>
+
+            <div class="bg-stone-800 text-stone-50 rounded-xl p-6 mb-8 shadow-md">
+                <div class="flex items-center space-x-3 mb-4">
+                    <span class="text-2xl">&#x1F511;</span>
+                    <h3 class="text-xl font-semibold">JWT Authentication</h3>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-sm text-stone-300 mb-2">All protected endpoints require a Bearer token in the request header.</p>
+                        <code class="block bg-stone-900 p-3 rounded text-emerald-400 font-mono text-sm border border-stone-700">Authorization: Bearer &lt;token&gt;</code>
+                    </div>
+                    <ul class="text-sm text-stone-300 space-y-2 border-l border-stone-600 pl-4">
+                        <li><strong class="text-stone-100">Algorithm:</strong> RSA-2048</li>
+                        <li><strong class="text-stone-100">Storage:</strong> Keys persist in <code class="bg-stone-700 px-1 rounded">JWT_KEY_DIRECTORY</code></li>
+                        <li><strong class="text-stone-100">Continuity:</strong> Keys are reused on restart to maintain token validity.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center bg-white border border-stone-200 rounded-xl p-6 shadow-sm">
+                <div>
+                    <h3 class="text-xl font-bold text-stone-800 mb-4">Role Capabilities Comparison</h3>
+                    <p class="text-sm text-stone-500 mb-6">The system defines three strict roles. Roles are hierarchical in terms of data access but separated concerning system administration.</p>
+                    
+                    <div class="space-y-4">
+                        <div class="p-4 rounded-lg border border-stone-200 bg-stone-50 hover:bg-stone-100 transition-colors">
+                            <h4 class="font-bold text-stone-800 flex items-center justify-between">
+                                VIEWER
+                                <span class="text-xs font-normal px-2 py-1 bg-stone-200 text-stone-700 rounded-full">Read-Only</span>
+                            </h4>
+                            <p class="text-sm text-stone-600 mt-1">Can view records and view the dashboard summary.</p>
+                        </div>
+                        <div class="p-4 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                            <h4 class="font-bold text-indigo-900 flex items-center justify-between">
+                                ANALYST
+                                <span class="text-xs font-normal px-2 py-1 bg-indigo-200 text-indigo-800 rounded-full">Data Manager</span>
+                            </h4>
+                            <p class="text-sm text-indigo-700 mt-1">Can view, create, update, and delete financial records. Can view dashboard.</p>
+                        </div>
+                        <div class="p-4 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 transition-colors">
+                            <h4 class="font-bold text-rose-900 flex items-center justify-between">
+                                ADMIN
+                                <span class="text-xs font-normal px-2 py-1 bg-rose-200 text-rose-800 rounded-full">Full Access</span>
+                            </h4>
+                            <p class="text-sm text-rose-700 mt-1">Can manage users (create/view), manage all records, and access the dashboard.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col items-center w-full">
+                    <div class="chart-container w-full">
+                        <canvas id="rbacChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="endpoints" class="content-section max-w-6xl mx-auto hidden">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-stone-900 mb-2">API Explorer</h2>
+                <p class="text-stone-600 text-lg leading-relaxed">
+                    Interactive directory of all available endpoints. Filter by category to find specific operations, and click any row to reveal detailed request payloads, query parameters, and response structures.
+                </p>
+            </div>
+
+            <div class="flex flex-wrap gap-2 mb-6" id="api-filters">
+                <button data-filter="ALL" class="px-4 py-2 rounded-full text-sm font-medium bg-stone-800 text-white transition-colors">All Endpoints</button>
+                <button data-filter="Auth" class="px-4 py-2 rounded-full text-sm font-medium bg-stone-200 text-stone-700 hover:bg-stone-300 transition-colors">Auth</button>
+                <button data-filter="Users" class="px-4 py-2 rounded-full text-sm font-medium bg-stone-200 text-stone-700 hover:bg-stone-300 transition-colors">Users (Admin)</button>
+                <button data-filter="Records" class="px-4 py-2 rounded-full text-sm font-medium bg-stone-200 text-stone-700 hover:bg-stone-300 transition-colors">Records</button>
+                <button data-filter="Dashboard" class="px-4 py-2 rounded-full text-sm font-medium bg-stone-200 text-stone-700 hover:bg-stone-300 transition-colors">Dashboard</button>
+            </div>
+
+            <div class="bg-white border border-stone-200 rounded-xl shadow-sm overflow-hidden">
+                <div class="grid grid-cols-12 gap-4 p-4 border-b border-stone-200 bg-stone-50 font-semibold text-stone-600 text-sm">
+                    <div class="col-span-2">Method</div>
+                    <div class="col-span-4">Endpoint</div>
+                    <div class="col-span-4">Description</div>
+                    <div class="col-span-2">Access</div>
+                </div>
+                <div id="api-list" class="divide-y divide-stone-100">
+                </div>
+            </div>
+        </section>
+
+        <section id="config" class="content-section max-w-5xl mx-auto hidden">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-stone-900 mb-2">Configuration & Specifications</h2>
+                <p class="text-stone-600 text-lg leading-relaxed">
+                    Essential details for environment setup, data validation rules, and standardized error handling formats.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                <div>
+                    <div class="bg-white border border-stone-200 rounded-xl p-6 shadow-sm mb-8">
+                        <h3 class="text-xl font-bold text-stone-800 mb-4 flex items-center">
+                            <span class="mr-2">&#x1F4BB;</span> Environment Variables
+                        </h3>
+                        <p class="text-sm text-stone-500 mb-4">Export these variables before starting the application wrapper.</p>
+                        <pre>
+$env:DB_USERNAME='postgres'
+$env:DB_PASSWORD='your_password'
+$env:JWT_EXPIRATION_MS='86400000'
+$env:JWT_RSA_KEY_SIZE='2048'
+$env:JWT_KEY_DIRECTORY='./target/security'</pre>
+                        
+                        <div class="mt-4 pt-4 border-t border-stone-100">
+                            <h4 class="font-semibold text-stone-700 mb-2">Testing</h4>
+                            <p class="text-sm text-stone-600 mb-2">Run the automated test suite using the Maven wrapper:</p>
+                            <code class="block bg-stone-100 p-2 rounded text-stone-800 text-sm font-mono border border-stone-200">./mvnw.cmd test</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="bg-white border border-stone-200 rounded-xl p-6 shadow-sm mb-6">
+                        <h3 class="text-xl font-bold text-stone-800 mb-4 flex items-center">
+                            <span class="mr-2">&#x26A0;&#xFE0F;</span> Validation Constraints
+                        </h3>
+                        <ul class="space-y-3">
+                            <li class="flex items-start">
+                                <span class="bg-stone-100 text-stone-600 text-xs font-bold px-2 py-1 rounded mt-0.5 mr-3 w-20 text-center">User</span>
+                                <span class="text-sm text-stone-700">Name not blank, valid email format, password min 8 characters.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="bg-stone-100 text-stone-600 text-xs font-bold px-2 py-1 rounded mt-0.5 mr-3 w-20 text-center">Record</span>
+                                <span class="text-sm text-stone-700">Amount &gt; 0, type/category not blank, notes max 500 chars.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="bg-stone-100 text-stone-600 text-xs font-bold px-2 py-1 rounded mt-0.5 mr-3 w-20 text-center">Pagination</span>
+                                <span class="text-sm text-stone-700"><code class="text-xs bg-stone-100 px-1">page</code> &ge; 0, <code class="text-xs bg-stone-100 px-1">size</code> &gt; 0.</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white border border-stone-200 rounded-xl p-6 shadow-sm">
+                        <h3 class="text-xl font-bold text-stone-800 mb-4 flex items-center">
+                            <span class="mr-2">&#x274C;</span> Error Handling
+                        </h3>
+                        <p class="text-sm text-stone-600 mb-3">The API returns standard HTTP status codes (400, 401, 403, 404, 500) with a structured JSON payload:</p>
+                        <pre>
+{
+  "message": "Description of the error",
+  "data": null
+}</pre>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const navButtons = document.querySelectorAll('.nav-item');
+        const sections = document.querySelectorAll('.content-section');
+        
+        navButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                navButtons.forEach(b => {
+                    b.classList.remove('nav-active');
+                    b.classList.add('text-stone-700');
+                });
+                btn.classList.add('nav-active');
+                btn.classList.remove('text-stone-700');
+                
+                const targetId = btn.getAttribute('data-target');
+                sections.forEach(sec => {
+                    if (sec.id === targetId) {
+                        sec.classList.remove('hidden');
+                    } else {
+                        sec.classList.add('hidden');
+                    }
+                });
+            });
+        });
+
+        const ctx = document.getElementById('rbacChart').getContext('2d');
+        const rbacChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Read Records', 'Write Records', 'View Dashboard', 'Manage Users'],
+                datasets: [
+                    {
+                        label: 'VIEWER',
+                        data: [1, 0, 1, 0],
+                        backgroundColor: 'rgba(231, 229, 228, 0.4)',
+                        borderColor: '#78716c',
+                        pointBackgroundColor: '#78716c',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'ANALYST',
+                        data: [1, 1, 1, 0],
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                        borderColor: '#4f46e5',
+                        pointBackgroundColor: '#4f46e5',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'ADMIN',
+                        data: [1, 1, 1, 1],
+                        backgroundColor: 'rgba(225, 29, 72, 0.2)',
+                        borderColor: '#e11d48',
+                        pointBackgroundColor: '#e11d48',
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        min: 0,
+                        max: 1,
+                        ticks: { display: false, stepSize: 1 },
+                        pointLabels: { font: { size: 12, family: 'system-ui' }, color: '#44403c' },
+                        grid: { color: '#e7e5e4' },
+                        angleLines: { color: '#e7e5e4' }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { family: 'system-ui' } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let val = context.raw === 1 ? 'Allowed' : 'Denied';
+                                return context.dataset.label + ': ' + val;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const apiData = [
+            {
+                id: 'auth-login',
+                category: 'Auth',
+                method: 'POST',
+                path: '/auth/login',
+                desc: 'Authenticates user credentials and returns a bearer token.',
+                access: 'Public',
+                details: `
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+    <div>
+        <h5 class="text-xs font-bold text-stone-500 uppercase mb-2">Request Body</h5>
+        <pre>{
+  "email": "admin@example.com",
+  "password": "admin12345"
+}</pre>
+    </div>
+    <div>
+        <h5 class="text-xs font-bold text-stone-500 uppercase mb-2">Response (200 OK)</h5>
+        <pre>{
+  "message": "Login success",
+  "data": "&lt;jwt-token&gt;"
+}</pre>
+    </div>
+</div>`
+            },
+            {
+                id: 'users-create',
+                category: 'Users',
+                method: 'POST',
+                path: '/users',
+                desc: 'Creates a new system user.',
+                access: 'ADMIN',
+                details: `
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+    <div>
+        <h5 class="text-xs font-bold text-stone-500 uppercase mb-2">Request Body</h5>
+        <pre>{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123",
+  "role": "VIEWER"
+}</pre>
+    </div>
+    <div>
+        <h5 class="text-xs font-bold text-stone-500 uppercase mb-2">Response (201 Created)</h5>
+        <pre>{
+  "message": "User created",
+  "data": { 
+    "id": 1, 
+    "name": "John Doe", 
+    "email": "john@example.com", 
+    "role": "VIEWER" 
+  }
+}</pre>
+    </div>
+</div>`
+            },
+            {
+                id: 'users-get',
+                category: 'Users',
+                method: 'GET',
+                path: '/users',
+                desc: 'Returns paginated user list.',
+                access: 'ADMIN',
+                details: `
+<div class="mt-4">
+    <h5 class="text-xs font-bold text-stone-500 uppercase mb-2">Query Parameters</h5>
+    <ul class="text-sm text-stone-700 bg-stone-50 p-4 rounded border border-stone-200 list-disc list-inside">
+        <li><strong>page</strong>: (int) Starts from 0.</li>
+        <li><strong>size</strong>: (int) Records per page.</li>
+    </ul>
+</div>`
+            },
+            {
+                id: 'records-create',
+                category: 'Records',
+                method: 'POST',
+                path: '/records',
+                desc: 'Creates a new financial record.',
+                access: 'ANALYST, ADMIN',
+                details: `
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+    <div>
+        <h5 class="text-xs font-bold text-stone-500 uppercase mb-2">Request Body</h5>
+        <pre>{
+  "amount": 5000,
+  "type": "INCOME",
+  "category": "Salary",
+  "date": "2026-01-01",
+  "notes": "Monthly salary"
+}</pre>
+    </div>
+    <div>
+        <h5 class="text-xs font-bold text-stone-500 uppercase mb-2">Constraint Notes</h5>
+        <p class="text-sm text-stone-600">Amount must be &gt; 0. Type must be INCOME or EXPENSE. Category cannot be blank. Notes max 500 chars.</p>
+    </div>
+</div>`
+            },
+            {
+                id: 'records-get',
+                category: 'Records',
+                method: 'GET',
+                path: '/records',
+                desc: 'Returns paginated and optionally filtered records.',
+                access: 'VIEWER, ANALYST, ADMIN',
+                details: `
+<div class="mt-4">
+    <h5 class="text-xs font-bold text-stone-500 uppercase mb-2">Query Parameters</h5>
+    <ul class="text-sm text-stone-700 bg-stone-50 p-4 rounded border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-2">
+        <li><strong>page</strong>: Starts from 0.</li>
+        <li><strong>size</strong>: Records per page.</li>
+        <li><strong>type</strong>: INCOME or EXPENSE.</li>
+        <li><strong>category</strong>: String filter.</li>
+        <li><strong>startDate</strong>: YYYY-MM-DD</li>
+        <li><strong>endDate</strong>: YYYY-MM-DD</li>
+    </ul>
+</div>`
+            },
+            {
+                id: 'records-put',
+                category: 'Records',
+                method: 'PUT',
+                path: '/records/{id}',
+                desc: 'Updates an existing specific financial record.',
+                access: 'ANALYST, ADMIN',
+                details: `<div class="mt-4 p-4 bg-amber-50 text-amber-900 border border-amber-200 rounded text-sm">Path variable <strong>{id}</strong> corresponds to the record's database ID. Body schema is identical to POST /records.</div>`
+            },
+            {
+                id: 'records-delete',
+                category: 'Records',
+                method: 'DELETE',
+                path: '/records/{id}',
+                desc: 'Removes a specific financial record permanently.',
+                access: 'ANALYST, ADMIN',
+                details: `<div class="mt-4 p-4 bg-rose-50 text-rose-900 border border-rose-200 rounded text-sm">Path variable <strong>{id}</strong> corresponds to the record's database ID. Operation cannot be undone.</div>`
+            },
+            {
+                id: 'dash-get',
+                category: 'Dashboard',
+                method: 'GET',
+                path: '/dashboard/summary',
+                desc: 'Returns aggregated metrics and recent activity.',
+                access: 'VIEWER, ANALYST, ADMIN',
+                details: `
+<div class="mt-4">
+    <h5 class="text-xs font-bold text-stone-500 uppercase mb-2">Response Example</h5>
+    <pre>{
+  "message": "Dashboard fetched",
+  "data": {
+    "totalIncome": 10000,
+    "totalExpense": 3500,
+    "netBalance": 6500,
+    "categoryWiseTotals": { "Salary": 10000, "Food": 1500 },
+    "monthlyTrend": { "2026-01": 7000 },
+    "recentActivity": [...]
+  }
+}</pre>
+</div>`
+            }
+        ];
+
+        const listContainer = document.getElementById('api-list');
+        const filterBtns = document.querySelectorAll('#api-filters button');
+        let currentExpanded = null;
+
+        function renderApiList(filter = 'ALL') {
+            listContainer.innerHTML = '';
+            const filtered = apiData.filter(item => filter === 'ALL' || item.category === filter);
+            
+            if (filtered.length === 0) {
+                listContainer.innerHTML = '<div class="p-8 text-center text-stone-500">No endpoints found for this category.</div>';
+                return;
+            }
+
+            filtered.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'hover:bg-stone-50 transition-colors border-b border-stone-100 last:border-0';
+                
+                const header = document.createElement('div');
+                header.className = 'grid grid-cols-12 gap-4 p-4 cursor-pointer items-center';
+                header.onclick = () => toggleDetails(item.id);
+                
+                header.innerHTML = `
+                    <div class="col-span-2">
+                        <span class="inline-block px-2 py-1 rounded text-xs font-bold method-${item.method}">${item.method}</span>
+                    </div>
+                    <div class="col-span-4 font-mono text-sm text-stone-800 truncate" title="${item.path}">${item.path}</div>
+                    <div class="col-span-4 text-sm text-stone-600 truncate" title="${item.desc}">${item.desc}</div>
+                    <div class="col-span-2 flex items-center justify-between">
+                        <span class="text-xs text-stone-500 bg-stone-100 px-2 py-1 rounded truncate" title="${item.access}">${item.access}</span>
+                        <span class="text-stone-400 text-lg ml-2 transform transition-transform" id="icon-${item.id}">&#43;</span>
+                    </div>
+                `;
+                
+                const details = document.createElement('div');
+                details.id = `details-${item.id}`;
+                details.className = 'hidden px-6 pb-6 pt-2 bg-stone-50 border-t border-stone-100';
+                details.innerHTML = item.details;
+
+                row.appendChild(header);
+                row.appendChild(details);
+                listContainer.appendChild(row);
+            });
+        }
+
+        function toggleDetails(id) {
+            const detailsDiv = document.getElementById(`details-${id}`);
+            const icon = document.getElementById(`icon-${id}`);
+            
+            if (currentExpanded && currentExpanded !== id) {
+                document.getElementById(`details-${currentExpanded}`).classList.add('hidden');
+                document.getElementById(`icon-${currentExpanded}`).innerHTML = '&#43;';
+                document.getElementById(`icon-${currentExpanded}`).classList.remove('rotate-45');
+            }
+
+            if (detailsDiv.classList.contains('hidden')) {
+                detailsDiv.classList.remove('hidden');
+                icon.innerHTML = '&#215;'; 
+                currentExpanded = id;
+            } else {
+                detailsDiv.classList.add('hidden');
+                icon.innerHTML = '&#43;';
+                currentExpanded = null;
+            }
+        }
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                filterBtns.forEach(b => {
+                    b.classList.remove('bg-stone-800', 'text-white');
+                    b.classList.add('bg-stone-200', 'text-stone-700');
+                });
+                e.target.classList.remove('bg-stone-200', 'text-stone-700');
+                e.target.classList.add('bg-stone-800', 'text-white');
+                
+                currentExpanded = null;
+                renderApiList(e.target.getAttribute('data-filter'));
+            });
+        });
+
+        renderApiList();
+    </script>
+</body>
+</html>
